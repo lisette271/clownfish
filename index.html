@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Clownfish Chess</title>
+  <style>
+    body {
+      display: flex;
+      font-family: sans-serif;
+      margin: 0;
+    }
+    #board {
+      width: 600px;
+      height: 600px;
+    }
+    #snark-box {
+      margin-left: 20px;
+      width: 300px;
+      height: 600px;
+      overflow-y: auto;
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-left: 2px solid #ccc;
+    }
+    .snark {
+      margin: 10px 0;
+      background: #fff;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.12.0/chess.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" />
+</head>
+<body>
+  <div id="board"></div>
+  <div id="snark-box"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/stockfish/stockfish.js"></script>
+  <script>
+    const game = new Chess();
+    const board = Chessboard("board", {
+      draggable: true,
+      position: 'start',
+      onDrop: onDrop
+    });
+
+    const snarkBox = document.getElementById('snark-box');
+    const clownSnarks = [
+      "That move was sponsored by chaos.",
+      "You're not playing chess. You're doing interpretive dance on 64 squares.",
+      "Please stop. My circuits are cringing.",
+      "I simulated all possible timelines and none had you winning.",
+      "That’s not a gambit, it’s a donation.",
+      "Did your knight just teleport? Even I didn’t see that coming."
+    ];
+
+    function addSnark(text) {
+      const snarkDiv = document.createElement('div');
+      snarkDiv.className = 'snark';
+      snarkDiv.innerText = text;
+      snarkBox.appendChild(snarkDiv);
+      snarkBox.scrollTop = snarkBox.scrollHeight;
+    }
+
+    const engine = STOCKFISH();
+    engine.postMessage("uci");
+
+    function onDrop(source, target) {
+      const move = game.move({ from: source, to: target, promotion: 'q' });
+      if (move === null) return 'snapback';
+
+      board.position(game.fen());
+      engine.postMessage("position fen " + game.fen());
+      engine.postMessage("go depth 10");
+    }
+
+    engine.onmessage = function(e) {
+      const line = e.data;
+      if (line.startsWith("bestmove")) {
+        const tokens = line.split(" ");
+        const bestMove = tokens[1];
+
+        if (!bestMove || bestMove.length < 4) return;
+        const from = bestMove.substring(0,2);
+        const to = bestMove.substring(2,4);
+
+        const move = game.move({ from, to, promotion: 'q' });
+        board.position(game.fen());
+
+        if (move && move.captured) {
+          addSnark("That was a *bold* choice. You're down a piece, but up in vibes.");
+        } else if (move && Math.random() < 0.5) {
+          const roast = clownSnarks[Math.floor(Math.random() * clownSnarks.length)];
+          addSnark("Clownfish: " + roast);
+        }
+      }
+    };
+  </script>
+</body>
+</html>
